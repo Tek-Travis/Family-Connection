@@ -1,0 +1,17 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+node_modules/
+dist/
+.aistudio/
+.env
+.env.*
+!.env.example
+*.backup-*
+*.log

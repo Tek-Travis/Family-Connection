@@ -1,0 +1,46 @@
+Family Connection — Third-Party & Adapted Source Provenance Notice
+
+This application incorporates and adapts peer-to-peer communication modules from:
+
+  Project:  Chitchatter (https://chitchatter.im)
+  Author:   Jeremy Kahn <me@jeremyckahn.com>
+  Upstream: https://github.com/jeremyckahn/chitchatter
+  Revision: a9bcd934b94bf1a0e270203851910784296dfbb2
+  License:  GPL-2.0-or-later (see /LICENSE)
+
+Stage 1 verbatim imported upstream paths:
+  - src/core/adapters/noop.ts
+  - src/core/adapters/types.ts
+  - src/core/chat/ChatRoom.ts
+  - src/core/chat/ChatRoomRegistry.ts
+  - src/core/chat/events.ts
+  - src/core/chat/fileOffers.ts
+  - src/core/chat/identity.ts
+  - src/core/chat/magnetUri.ts
+  - src/core/chat/messageValidation.ts
+  - src/core/chat/peers.ts
+  - src/core/chat/protocol.ts
+  - src/core/chat/transcript.ts
+  - src/core/config/messaging.ts
+  - src/core/config/turnConfig.ts
+  - src/core/crypto/Encryption.ts
+  - src/core/crypto/random.ts
+  - src/core/lib/Time.ts
+  - src/core/lib/sleep.ts
+  - src/core/lib/type-guards.ts
+  - src/core/models/chat.ts
+  - src/core/models/network.ts
+  - src/core/models/settings.ts
+  - src/core/transport/InMemoryTransport.ts
+  - src/core/transport/TrysteroTransport.ts
+  - src/core/transport/types.ts
+  - src/services/FileTransfer/FileTransfer.ts
+  - src/services/FileTransfer/index.ts
+  - src/config/trackerUrls.ts
+  - src/config/rtcConfig.ts
+  - src/config/streamSaverUrl.ts
+
+Stage 1 adapted upstream paths (modifications marked in file header):
+  - src/core/names/peerNames.ts (removed fun-animal-names fallback in favor of Family-<id> fallback)
+
+Combined distribution terms are governed by GPL-2.0-or-later (see /LICENSE).

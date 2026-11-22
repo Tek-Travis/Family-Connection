@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+:root,
+.theme-earthy-3 {
+  --bg-color: #7f7963;
+  --text-color: 255, 255, 255;
+  --invert-color: 0, 0, 0;
+  --accent-color: #ffffff;
+  --bubble-me-bg: #ffffff;
+  --bubble-me-text: #000000;
+  --card-bg: rgba(61, 54, 43, 0.4);
+  --card-border: rgba(255, 255, 255, 0.15);
+}
+
+.theme-earthy-1 {
+  --bg-color: #ecebe9;
+  --text-color: 25, 25, 25;
+  --invert-color: 255, 255, 255;
+  --accent-color: #2b2b2b;
+  --bubble-me-bg: #2b2b2b;
+  --bubble-me-text: #ffffff;
+  --card-bg: rgba(255, 255, 255, 0.7);
+  --card-border: rgba(155, 155, 153, 0.3);
+}
+
+.theme-earthy-2 {
+  --bg-color: #9b9b99;
+  --text-color: 20, 20, 20;
+  --invert-color: 255, 255, 255;
+  --accent-color: #1e1e1e;
+  --bubble-me-bg: #1e1e1e;
+  --bubble-me-text: #ffffff;
+  --card-bg: rgba(255, 255, 255, 0.45);
+  --card-border: rgba(255, 255, 255, 0.3);
+}
+
+.theme-earthy-4 {
+  --bg-color: #655d50;
+  --text-color: 255, 255, 255;
+  --invert-color: 0, 0, 0;
+  --accent-color: #ffffff;
+  --bubble-me-bg: #ffffff;
+  --bubble-me-text: #000000;
+  --card-bg: rgba(45, 40, 33, 0.45);
+  --card-border: rgba(255, 255, 255, 0.15);
+}
+
+.theme-earthy-5 {
+  --bg-color: #393323;
+  --text-color: 255, 255, 255;
+  --invert-color: 0, 0, 0;
+  --accent-color: #ffffff;
+  --bubble-me-bg: #ffffff;
+  --bubble-me-text: #000000;
+  --card-bg: rgba(25, 22, 14, 0.55);
+  --card-border: rgba(255, 255, 255, 0.12);
+}
+
+body {
+  background-color: var(--bg-color);
+  color: rgb(var(--text-color));
+  font-family: 'Public Sans', sans-serif;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.font-display {
+  font-family: 'Libre Caslon Text', serif;
+}
+
+.btn-uniform {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(var(--text-color), 0.12);
+  color: rgb(var(--text-color));
+  border: 1.5px solid var(--card-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-uniform:hover {
+  background-color: rgba(var(--text-color), 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-uniform:active {
+  transform: scale(0.97);
+}
+
+.chat-bubble-me {
+  background-color: var(--bubble-me-bg);
+  color: var(--bubble-me-text);
+}
+
+.chat-bubble-other {
+  background-color: rgba(var(--text-color), 0.12);
+  color: rgb(var(--text-color));
+  border: 1px solid var(--card-border);
+}
+
+@keyframes loading-progress {
+  0% { transform: scaleX(0.05); }
+  50% { transform: scaleX(0.7); }
+  100% { transform: scaleX(1); }
+}
+
+.loading-bar {
+  transform-origin: left;
+  animation: loading-progress 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}

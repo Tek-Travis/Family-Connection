@@ -1,0 +1,6 @@
+{
+  "name": "Family Connection - Private P2P Messenger",
+  "description": "Decentralized, offline-first P2P family messenger with encrypted group mesh, direct 1:1 WebRTC chat, and voice/video calling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
