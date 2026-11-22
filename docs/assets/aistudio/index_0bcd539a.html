@@ -1,0 +1,1848 @@
+<!doctype html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Family Connection - Private Chat App</title>
+
+    <link rel="stylesheet" href="vendor/fonts/text-fonts.css" />
+    <link rel="stylesheet" href="vendor/fonts/material-symbols.css" />
+    <link rel="stylesheet" href="vendor/fonts/material-icons.css" />
+
+    <link rel="stylesheet" href="css/styles.css" />
+
+    <script>
+        // Suppress known "not for production" warnings from Tailwind CDN and Babel Standalone.
+        // These libraries recommend Node.js build tools, which this project does not use.
+        (function () {
+            const _warn = console.warn;
+            console.warn = function (...args) {
+                const msg = typeof args[0] === 'string' ? args[0] : '';
+                if (msg.includes('cdn.tailwindcss.com should not be used in production') ||
+                    msg.includes('You are using the in-browser Babel transformer')) return;
+                _warn.apply(console, args);
+            };
+        })();
+    </script>
+    <script src="vendor/js/tailwindcss.js"></script>
+    <script src="vendor/js/react.development.js"></script>
+    <script src="vendor/js/react-dom.development.js"></script>
+    <script src="vendor/js/history.development.js"></script>
+    <script src="vendor/js/react-router.development.js"></script>
+    <script src="vendor/js/react-router-dom.development.js"></script>
+    <script src="vendor/js/framer-motion.js"></script>
+    <script src="vendor/js/libp2p/libp2p.js"></script>
+    <script src="vendor/js/libp2p/websockets.js"></script>
+    <script src="vendor/js/libp2p/webrtc.js"></script>
+    <script src="vendor/js/libp2p/noise.js"></script>
+    <script src="vendor/js/libp2p/yamux.js"></script>
+    <script src="vendor/js/libp2p/gossipsub.js"></script>
+    <script src="vendor/js/libp2p/bootstrap.js"></script>
+    <script src="vendor/js/libp2p/identify.js"></script>
+    <script src="vendor/js/babel.min.js"></script>
+    <script src="vendor/js/nacl-fast.min.js"></script>
+    <script src="vendor/js/nacl-util.min.js"></script>
+
+    <script src="js/debug.js"></script>
+    <script src="js/constants.js"></script>
+    <script src="js/crypto-utils.js"></script>
+    <script src="js/family-manager.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/discovery-manager.js"></script>
+    <script src="js/mesh-tracker.js"></script>
+    <script src="js/libp2p-mesh.js"></script>
+    <script src="js/peer-manager.js"></script>
+    <script src="js/message-requests.js"></script>
+    <script src="js/private-channel.js"></script>
+    <script src="js/connection-manager.js"></script>
+
+    <script>
+        // Theme initialization
+        function applySavedTheme() {
+            const savedTheme = localStorage.getItem('fm_theme') || 'theme-earthy-3';
+            document.documentElement.className = savedTheme;
+        }
+        applySavedTheme();
+
+        window.setTheme = function (themeName) {
+            localStorage.setItem('fm_theme', themeName);
+            applySavedTheme();
+        };
+
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "var(--accent-color)",
+                        "background-light": "var(--bg-color)",
+                        "background-dark": "var(--bg-color)",
+                        white: "rgb(var(--text-color) / <alpha-value>)",
+                        black: "rgb(var(--invert-color) / <alpha-value>)",
+                        accent: "var(--accent-color)",
+                        earthy: {
+                            1: "#ecebe9",
+                            2: "#9b9b99",
+                            3: "#7f7963",
+                            4: "#655d50",
+                            5: "#393323",
+                        },
+                    },
+                    boxShadow: {
+                        'soft': '0 12px 24px -10px rgba(0, 0, 0, 0.4), 0 8px 16px -12px rgba(0, 0, 0, 0.3)',
+                        'xl-soft': '0 20px 40px -15px rgba(0, 0, 0, 0.5)',
+                    },
+                    fontFamily: {
+                        display: "Libre Caslon Text",
+                        publicSans: ["Public Sans", "sans-serif"],
+                    },
+                },
+            },
+        };
+</script>
+<style>
+    /* Modern Theme Custom Properties */
+    :root,
+    .theme-earthy-3 {
+        --bg-color: #7f7963;
+        --text-color: 255, 255, 255; /* white text */
+        --accent-color: #ffffff;
+        --bubble-me-bg: #ffffff;
+        --bubble-me-text: #000000; /* black text on light bubble */
+    }
+
+    .theme-earthy-1 {
+        --bg-color: #ecebe9;
+        --text-color: 0, 0, 0; /* black text */
+        --accent-color: #000000;
+        --bubble-me-bg: #000000;
+        --bubble-me-text: #ffffff; /* white text on dark bubble */
+    }
+
+    .theme-earthy-2 {
+        --bg-color: #9b9b99;
+        --text-color: 0, 0, 0; /* black text */
+        --accent-color: #000000;
+        --bubble-me-bg: #000000;
+        --bubble-me-text: #ffffff; /* white text on dark bubble */
+    }
+
+    .theme-earthy-4 {
+        --bg-color: #655d50;
+        --text-color: 255, 255, 255; /* white text */
+        --accent-color: #ffffff;
+        --bubble-me-bg: #ffffff;
+        --bubble-me-text: #000000; /* black text on light bubble */
+    }
+
+    .theme-earthy-5 {
+        --bg-color: #393323;
+        --text-color: 255, 255, 255; /* white text */
+        --accent-color: #ffffff;
+        --bubble-me-bg: #ffffff;
+        --bubble-me-text: #000000; /* black text on light bubble */
+    }
+
+    /* Utility Classes */
+    .page-container {
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* Optional readability helpers */
+    body {
+        background-color: var(--bg-color);
+        color: rgb(var(--text-color));
+    }
+
+    .text-on-dark {
+        color: #ffffff;
+    }
+
+    .text-on-light {
+        color: #000000;
+    }
+</style>
+</head>
+
+<body class="bg-background-light font-publicSans text-white overflow-hidden" style="color: rgb(var(--text-color));">
+    <div id="root" class="w-full h-full"></div>
+    <div id="debug-overlay"
+        style="position:fixed;top:10px;right:10px;z-index:10000;display:none;background:rgba(0,0,0,0.9);color:#0f0;font-family:monospace;padding:10px;border-radius:8px;max-width:90vw;max-height:80vh;overflow-y:auto;font-size:10px;border:1px solid #0f0;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+            <b>APP DEBUG CONSOLE</b>
+            <div style="display:flex;gap:10px">
+                <button id="dev-mode-btn"
+                    onclick="const enabled=sessionStorage.getItem('dev_mode_enabled')==='true';sessionStorage.setItem('dev_mode_enabled',!enabled);location.reload();"
+                    style="background:orange;color:black;border:none;padding:2px 5px;cursor:pointer;font-size:9px;font-weight:bold;">TOGGLE
+                    DEV IDENTITY</button>
+                <button onclick="document.getElementById('debug-overlay').style.display='none'"
+                    style="background:red;color:white;border:none;padding:2px 5px;cursor:pointer;">Close</button>
+            </div>
+        </div>
+        <div id="dev-mode-status" style="margin-bottom:10px;padding:5px;background:#222;border:1px solid #444;">
+            STATUS: <span id="status-text"></span>
+        </div>
+        <script>
+            document.getElementById("status-text").innerText = sessionStorage.getItem("dev_mode_enabled") === "true" ? "DEV MODE (Session Identity)" : "NORMAL MODE (Shared Identity)";
+            document.getElementById("status-text").style.color = sessionStorage.getItem("dev_mode_enabled") === "true" ? "#0f0" : "#f00";
+        </script>
+        <div id="debug-content"></div>
+    </div>
+    <button id="debug-toggle"
+        style="position:fixed;bottom:10px;left:10px;z-index:10001;background:#333;color:#fff;padding:5px 10px;border-radius:4px;font-size:10px;opacity:0.5;"
+        onclick="const d=document.getElementById('debug-overlay');d.style.display=d.style.display==='none'?'block':'none';document.getElementById('debug-content').innerText=window.APP_DEBUG.logs.join('\n');">DEBUG</button>
+    <script type="text/babel">
+        /* === SECTION 12: REACT ENGINE & SHARED VARIANTS === */
+        /**
+         * Global React environment and animation defaults.
+         * - Destructuring common hooks (useState, useEffect) for cleaner component code.
+         * - Framer Motion variants: Defines how pages slide and fade during navigation.
+         */
+        const { useState, useEffect, useMemo, useRef, useCallback } = React;
+        const { createRoot } = ReactDOM;
+        const {
+            MemoryRouter,
+            Routes,
+            Route,
+            Link,
+            useNavigate,
+            useLocation,
+        } = ReactRouterDOM;
+
+        // Fix for Framer Motion global access
+        const motion = window.Motion
+            ? window.Motion.motion
+            : window.FramerMotion
+                ? window.FramerMotion.motion
+                : null;
+        const AnimatePresence = window.Motion
+            ? window.Motion.AnimatePresence
+            : window.FramerMotion
+                ? window.FramerMotion.AnimatePresence
+                : null;
+
+        // Shared Animation Variants
+        const pageVariants = {
+            initial: { opacity: 0, x: 20 },
+            animate: {
+                opacity: 1,
+                x: 0,
+                transition: { duration: 0.3, ease: "easeOut" },
+            },
+            exit: {
+                opacity: 0,
+                x: -20,
+                transition: { duration: 0.2, ease: "easeIn" },
+            },
+        };
+
+        const tapScale = { scale: 0.95 };
+        const buttonHover = { scale: 1.02 };
+
+        /**
+         * Animated Page Wrapper
+         */
+        const PageWrapper = ({ children }) => (
+            <motion.div
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className="page-container"
+            >
+                {children}
+            </motion.div>
+        );
+
+        /* === SECTION 13: UI SCREENS (COMPONENT LIBRARY) === */
+
+        /**
+         * Notification Container Component
+         * Subscribes to the global manager and renders toasts.
+         */
+        const NotificationContainer = () => {
+            const [notifications, setNotifications] = useState([]);
+            useEffect(() => {
+                return window.notificationManager.subscribe(list => setNotifications(list));
+            }, []);
+
+            return (
+                <div className="fixed top-4 left-0 right-0 z-[100] flex flex-col items-center space-y-2 pointer-events-none">
+                    <AnimatePresence>
+                        {notifications.map(n => (
+                            <motion.div
+                                key={n.id}
+                                initial={{ opacity: 0, y: -20, scale: 0.9 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className={`pointer-events-auto px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border-2 ${n.type === 'error' ? 'bg-red-500 border-red-400 text-white' :
+                                    n.type === 'success' ? 'bg-green-500 border-green-400 text-white' :
+                                        'bg-gray-800 border-gray-700 text-white'
+                                    }`}
+                            >
+                                <span className="material-symbols-outlined text-xl">
+                                    {n.type === 'error' ? 'error' : n.type === 'success' ? 'check_circle' : 'info'}
+                                </span>
+                                <span className="font-bold text-sm tracking-wide">{n.message}</span>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
+            );
+        };
+
+        /**
+         * This section contains the core visual screens of the application.
+         * Components are designed as 'Pages' that are swapped by the Router.
+         */
+
+        /**
+         * 13.1: Splash Screen
+         * Displays the brand identity and initializes the P2P connection in the background.
+         */
+        const SplashScreen = () => {
+            const navigate = useNavigate();
+
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    navigate("/settings");
+                }, 3000);
+                return () => clearTimeout(timer);
+            }, [navigate]);
+
+            return (
+                <PageWrapper>
+                    <div className="w-full h-screen flex flex-col items-center justify-between p-8 text-center bg-background-light">
+                        <div className="h-8"></div>
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className="space-y-2 mt-8 font-display"
+                        >
+                                <img
+                                    alt="Family dinner"
+                                    className="w-auto h-auto object-contain"
+                                    src="assets/images/splash.png"
+                                />                           
+                            <p className="text-white/100 text-lg font-medium">
+                                Your Private and Secure Family Space.
+                            </p>
+                        </motion.div>
+                        <div className="flex-1 flex items-center justify-center w-full px-4">
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5 }}
+                                className="relative w-full aspect-square max-w-[300px] flex items-center justify-center"
+                            >
+
+                            </motion.div>
+                        </div>
+                        <div className="w-full max-w-[200px] mb-12 flex flex-col items-center space-y-4">
+                            <div className="w-full h-1 bg-earthy-5 rounded-full overflow-hidden">
+                                <div className="loading-bar h-full bg-white rounded-full"></div>
+                            </div>
+                            <div className="flex flex-col items-center space-y-1">
+                                <span className="text-xs font-semibold text-white/80 uppercase tracking-widest">
+                                    Secure Connection
+                                </span>
+                                <div className="flex items-center gap-1.5 text-green-400">
+                                    <span className="material-symbols-outlined text-sm">
+                                        lock
+                                    </span>
+                                    <span className="text-[10px] font-bold">
+                                        P2P ENCRYPTED
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="h-6"></div>
+                    </div>
+                </PageWrapper>
+            );
+        };
+
+        /**
+         * Settings Screen Component
+         */
+        const SettingsScreen = () => {
+            const navigate = useNavigate();
+            const [showAddModal, setShowAddModal] = useState(false);
+            const [inviteCodeInput, setInviteCodeInput] = useState("");
+            const [unreadCount, setUnreadCount] = useState(0);
+            const [myIdentity, setMyIdentity] = useState(null);
+            const [familyMembers, setFamilyMembers] = useState([]);
+            const [menuOpenId, setMenuOpenId] = useState(null);
+            const [presence, setPresence] = useState({}); // identityHash -> ONLINE|OFFLINE
+            const [showAppearanceModal, setShowAppearanceModal] = useState(false);
+
+            useEffect(() => {
+                const start = async () => {
+                    const identity =
+                        await window.CryptoUtils.getOrCreateIdentity();
+                    setMyIdentity(identity);
+                    setFamilyMembers(window.familyManager.getMembers());
+                    setUnreadCount(
+                        window.messageRequestService.getTotalUnreadCount(),
+                    );
+                };
+                start();
+
+                const unsubFamily = window.familyManager.subscribe((list) =>
+                    setFamilyMembers(list),
+                );
+                const unsubMsgs = window.messageRequestService.subscribe(
+                    () => {
+                        setUnreadCount(
+                            window.messageRequestService.getTotalUnreadCount(),
+                        );
+                    },
+                );
+
+                const onPresenceUpdate = (e) => {
+                    const { contactId, state } = e.detail;
+                    setPresence(prev => ({ ...prev, [contactId]: state }));
+                };
+                const onConnStateUpdate = (e) => {
+                    const { contactId, state } = e.detail;
+                    setPresence(prev => ({ ...prev, ['conn_' + contactId]: state }));
+                };
+                if (window.fmConnection) {
+                    window.fmConnection.addEventListener('presence_change', onPresenceUpdate);
+                    window.fmConnection.addEventListener('connection_state_change', onConnStateUpdate);
+                }
+
+                return () => {
+                    unsubFamily();
+                    unsubMsgs();
+                    if (window.fmConnection) {
+                        window.fmConnection.removeEventListener('presence_change', onPresenceUpdate);
+                        window.fmConnection.removeEventListener('connection_state_change', onConnStateUpdate);
+                    }
+                };
+            }, []);
+
+            const handleJoinFamily = async () => {
+                const code = inviteCodeInput.trim();
+                // Normalize code format if needed (e.g. UPPERCASE)
+                const normalizedCode = code.toUpperCase();
+
+                if (!normalizedCode) return;
+
+                try {
+                    window.APP_DEBUG.log(`Discovery: Starting search for ${normalizedCode}`);
+                    window.notificationManager.show("Searching for family member...", "info");
+
+                    // 1. Join the discovery room for this code
+                    await window.discoveryManager.discoverPeerByInviteCode(normalizedCode);
+
+                    // 2. When a peer is found in this specific discovery room, send them a request
+                    window.discoveryManager.onPeerFound = (peerId) => {
+                        // Safety check if identity exists
+                        const currentIdentity = window.CryptoUtils.getUserIdentity();
+                        if (!currentIdentity) {
+                            window.APP_DEBUG.error("Discovery: Cannot send join request - Identity null");
+                            return;
+                        }
+
+                        // Debounce by Peer ID to prevent Alert/Message spam
+                        if (!window.__discoveryPeerDebounce) window.__discoveryPeerDebounce = new Set();
+                        if (window.__discoveryPeerDebounce.has(peerId)) return;
+                        window.__discoveryPeerDebounce.add(peerId);
+                        setTimeout(() => window.__discoveryPeerDebounce.delete(peerId), 30000);
+
+                        window.APP_DEBUG.log(`Discovery: Found peer ${peerId}, sending JOIN_REQUEST`);
+                        window.discoveryManager.sendDiscoveryMessage(peerId, {
+                            type: "JOIN_REQUEST",
+                            targetCode: normalizedCode,
+                            senderProfile: {
+                                identityHash: currentIdentity.identityHash,
+                                firstName: currentIdentity.firstName,
+                                lastName: currentIdentity.lastName,
+                                publicKey: currentIdentity.publicKey,
+                                inviteCode: currentIdentity.inviteCode,
+                            },
+                        });
+                        window.notificationManager.show(`Found family member! Sent request...`, "success");
+                    };
+
+                    setInviteCodeInput("");
+
+                    // Safety Revert after 60s if nothing happens
+                    setTimeout(() => {
+                        window.APP_DEBUG.log("Discovery: Search timeout check...");
+                        const id = window.CryptoUtils.getUserIdentity();
+                        if (id) {
+                            window.discoveryManager.registerDiscovery(id.inviteCode, id);
+                        }
+                    }, 60000);
+
+                } catch (err) {
+                    window.APP_DEBUG.error("Join Family Error", err);
+                    window.notificationManager.show("Error searching for family member.", "error");
+                } finally {
+                    // ALWAYS close the modal to prevent it from getting stuck
+                    setShowAddModal(false);
+                }
+            };
+
+            const myHash = myIdentity?.identityHash;
+            const inviteCode = myIdentity?.inviteCode || "...";
+
+            return (
+                <PageWrapper>
+                    <div className="min-h-screen bg-background-light pb-8 font-publicSans">
+                        <header className="flex items-center justify-between p-4 border-b border-white/20 sticky top-0 z-10 bg-background-light">
+                            <div className="w-10"></div>
+                            <h1 className="font-bold text-2xl text-white">
+                                Family Connection
+                            </h1>
+                            <div className="w-10 relative">
+                                {unreadCount > 0 && (
+                                    <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-background-light">
+                                        {unreadCount}
+                                    </div>
+                                )}
+                            </div>
+                        </header>
+<div className="px-4 mt-6 mb-8">
+  <motion.div
+    whileTap={tapScale}
+    className="cursor-pointer"
+    onClick={() => navigate("/group-chat")}
+  >
+    <div className="rounded-3xl border-4 border-black/80 bg-transparent shadow-xl p-4 flex flex-col items-center">
+      <img
+        alt="Family Dinner"
+        className="w-full h-48 object-cover rounded-2xl"
+        src="assets/images/family-dinner.png"
+      />
+
+      <div className="mt-3 text-black font-bold text-lg">
+        Enter Family Chat
+      </div>
+    </div>
+  </motion.div>
+</div>
+                        {myIdentity && (
+                            <section className="mb-8 px-4">
+                                <div className="bg-earthy-4/40 rounded-3xl p-6 border-2 border-earthy-2/30 shadow-lg flex items-center gap-6">
+                                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-primary text-3xl font-bold border-4 border-white/30 shadow-inner">
+                                        {myIdentity.firstName.substring(0, 1)}
+                                    </div>
+                                    <div className="flex-1">
+                                        <h2 className="text-xl font-bold text-white tracking-tight">
+                                            {myIdentity.firstName} {myIdentity.lastName}
+                                        </h2>
+                                        <p className="text-[10px] font-bold uppercase text-white/40 tracking-widest mt-1 mb-1">
+                                            Your Invite Code
+                                        </p>
+                                        <p className="font-mono text-sm text-white/80 font-bold bg-black/20 px-3 py-1 rounded-lg inline-block border border-white/10">
+                                            {myIdentity.inviteCode}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-3 h-3 bg-green-400 rounded-full shadow-[0_0_8px_rgba(74,222,128,0.5)]"></div>
+                                        <span className="text-[8px] font-bold text-green-400 mt-1 uppercase">Active</span>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+
+                        <section className="mb-8">
+                            <h2 className="text-sm font-bold uppercase text-white/80 px-4 mb-3 tracking-widest">
+                                Family Members ({familyMembers.length})
+                            </h2>
+                            <div className="bg-earthy-4/30 mx-4 rounded-3xl shadow-lg border-2 border-earthy-2/30">
+                                <ul className="divide-y-2 divide-white/20">
+                                    {familyMembers.length === 0 && (
+                                        <div className="p-10 text-center text-white/40 italic">
+                                            No family members added yet.
+                                        </div>
+                                    )}
+                                    {familyMembers.filter(m => m.identityHash !== myHash).map((member, i) => (
+                                        <motion.li
+                                            key={member.identityHash}
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: i * 0.05 }}
+                                            className="flex items-center justify-between p-4"
+                                        >
+                                            <div className="flex items-center space-x-4">
+                                                <div
+                                                    className={`bg-primary w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl border-2 border-white/50 shadow-md`}
+                                                >
+                                                    {member.firstName.substring(
+                                                        0,
+                                                        1,
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-lg text-white">
+                                                        {member.firstName}{" "}
+                                                        {member.lastName}
+                                                    </p>
+                                                    <p
+                                                        className={`text-xs font-medium ${(presence[member.identityHash.substring(0, 128)] === 'online' || presence[member.identityHash.substring(0, 128)] === 'ONLINE') ? 'text-green-400' : 'text-white/60'}`}
+                                                    >
+                                                        {(presence[member.identityHash.substring(0, 128)] === 'online' || presence[member.identityHash.substring(0, 128)] === 'ONLINE') ? 'Online' : 'Member'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <motion.button
+                                                    whileTap={tapScale}
+                                                    onClick={() => navigate("/private-chat", { state: { peer: member } })}
+                                                    className="w-10 h-10 rounded-full btn-uniform text-primary border-primary/20"
+                                                    title="Private Message"
+                                                >
+                                                    <span className="material-icons-outlined text-xl">chat</span>
+                                                </motion.button>
+                                                <motion.button
+                                                    whileTap={tapScale}
+                                                    onClick={() => window.notificationManager.show("Voice call feature coming soon!", "info")}
+                                                    className="w-10 h-10 rounded-full btn-uniform text-gray-600 border-gray-200"
+                                                    title="Voice Call"
+                                                >
+                                                    <span className="material-icons-outlined text-xl">call</span>
+                                                </motion.button>
+                                                <motion.button
+                                                    whileTap={tapScale}
+                                                    onClick={() => window.notificationManager.show("Video call feature coming soon!", "info")}
+                                                    className="w-10 h-10 rounded-full btn-uniform text-gray-600 border-gray-200"
+                                                    title="Video Call"
+                                                >
+                                                    <span className="material-icons-outlined text-xl">videocam</span>
+                                                </motion.button>
+                                                <div className="relative">
+                                                    <motion.button
+                                                        whileTap={tapScale}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setMenuOpenId(menuOpenId === member.identityHash ? null : member.identityHash);
+                                                        }}
+                                                        className="w-10 h-10 rounded-full btn-uniform text-gray-500 border-transparent bg-transparent hover:bg-white/10"
+                                                    >
+                                                        <span className="material-icons-outlined text-xl">more_vert</span>
+                                                    </motion.button>
+                                                    {menuOpenId === member.identityHash && (
+                                                        <div className="absolute right-0 top-12 bg-white text-gray-800 rounded-xl shadow-2xl border border-gray-100 w-48 overflow-hidden z-20">
+                                                            <button
+                                                                className="w-full text-left px-4 py-3 hover:bg-gray-100 flex items-center gap-2"
+                                                                onClick={() => {
+                                                                    window.familyManager.muteMember(member.identityHash);
+                                                                    setMenuOpenId(null);
+                                                                }}
+                                                            >
+                                                                <span className="material-icons-outlined text-lg">volume_off</span>
+                                                                {window.familyManager.isMuted(member.identityHash) ? "Unmute" : "Mute"}
+                                                            </button>
+                                                            <button
+                                                                className="w-full text-left px-4 py-3 hover:bg-gray-100 flex items-center gap-2 text-red-500"
+                                                                onClick={() => {
+                                                                    if (confirm("Remove this family member?")) {
+                                                                        window.familyManager.removeMember(member.identityHash);
+                                                                        setMenuOpenId(null);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <span className="material-icons-outlined text-lg">person_remove</span>
+                                                                Remove
+                                                            </button>
+                                                            <button
+                                                                className="w-full text-left px-4 py-3 hover:bg-red-50 flex items-center gap-2 text-red-600 font-bold"
+                                                                onClick={() => {
+                                                                    if (confirm("Block this user? They won't be able to contact you.")) {
+                                                                        window.familyManager.blockMember(member.identityHash);
+                                                                        setMenuOpenId(null);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <span className="material-icons-outlined text-lg">block</span>
+                                                                Block
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </motion.li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </section>
+
+                        <div className="px-4 mb-8">
+                            <motion.button
+                                whileTap={tapScale}
+                                onClick={() => setShowAddModal(true)}
+                                className="w-full btn-uniform py-4 px-6 rounded-full text-xl gap-3"
+                            >
+                                <span className="material-icons-outlined text-2xl text-primary">
+                                    person_add
+                                </span>
+                                ADD FAMILY MEMBER
+                            </motion.button>
+                        </div>
+
+                        <AnimatePresence>
+                            {showAddModal && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        onClick={() =>
+                                            setShowAddModal(false)
+                                        }
+                                        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                                    />
+                                    <motion.div
+                                        initial={{
+                                            scale: 0.9,
+                                            opacity: 0,
+                                            y: 20,
+                                        }}
+                                        animate={{
+                                            scale: 1,
+                                            opacity: 1,
+                                            y: 0,
+                                        }}
+                                        exit={{
+                                            scale: 0.9,
+                                            opacity: 0,
+                                            y: 20,
+                                        }}
+                                        className="relative bg-background-light w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border-4 border-white/20 text-center"
+                                    >
+                                        <button
+                                            onClick={() =>
+                                                setShowAddModal(false)
+                                            }
+                                            className="absolute top-4 right-4 text-white/60 hover:text-white"
+                                        >
+                                            <span className="material-symbols-outlined">
+                                                close
+                                            </span>
+                                        </button>
+
+                                        <div className="mb-6">
+                                            <h2 className="text-2xl font-bold text-white mb-2">
+                                                Connect with Family
+                                            </h2>
+                                            <p className="text-white/70 text-sm">
+                                                Enter code or share yours
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-4 mb-6">
+                                            <input
+                                                className="w-full bg-white/10 border-2 border-white/20 rounded-2xl py-4 px-6 text-xl text-white font-mono text-center placeholder-white/30 focus:outline-none focus:border-white/50"
+                                                placeholder="0000-0000-0000-0000"
+                                                value={inviteCodeInput}
+                                                onChange={(e) =>
+                                                    setInviteCodeInput(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                            <motion.button
+                                                whileTap={tapScale}
+                                                className="w-full bg-white text-primary font-bold py-4 rounded-full text-lg shadow-xl"
+                                                onClick={handleJoinFamily}
+                                            >
+                                                Add Contact
+                                            </motion.button>
+                                        </div>
+
+                                        <div className="bg-white/10 p-4 rounded-2xl border border-white/10">
+                                            <p className="text-[10px] font-bold uppercase text-white/50 mb-1 tracking-widest">
+                                                Your Code
+                                            </p>
+                                            <p className="text-xl font-mono font-bold text-white tracking-widest">
+                                                {inviteCode}
+                                            </p>
+                                        </div>
+                                    </motion.div>
+                                </div>
+                            )}
+                        </AnimatePresence>
+
+                        <section>
+                            <h2 className="text-sm font-bold uppercase text-white/80 px-4 mb-3 tracking-widest">
+                                App Settings
+                            </h2>
+                            <div className="bg-earthy-4/30 mx-4 rounded-3xl shadow-lg border-2 border-earthy-2/30 overflow-hidden">
+                                <ul className="divide-y-2 divide-white/20">
+                                    {[
+                                        {
+                                            icon: "notifications",
+                                            label: "Notifications",
+                                        },
+                                        {
+                                            icon: "palette",
+                                            label: "Appearance",
+                                            action: () => setShowAppearanceModal(true)
+                                        },
+                                    ].map((item, i) => (
+                                        <motion.li
+                                            whileTap={{
+                                                backgroundColor:
+                                                    "rgba(255,255,255,0.2)",
+                                            }}
+                                            key={i}
+                                            onClick={() => item.action ? item.action() : window.notificationManager.show(`${item.label} feature coming soon!`, "info")}
+                                            className="flex items-center justify-between p-5 cursor-pointer hover:bg-white/10 transition-colors"
+                                        >
+                                            <div className="flex items-center space-x-4">
+                                                <span className="material-icons-outlined text-white text-2xl">
+                                                    {item.icon}
+                                                </span>
+                                                <p className="text-lg font-medium text-white">
+                                                    {item.label}
+                                                </p>
+                                            </div>
+                                            <span className="material-icons-outlined text-white/60">
+                                                chevron_right
+                                            </span>
+                                        </motion.li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </section>
+
+                        <AnimatePresence>
+                            {showAppearanceModal && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        onClick={() => setShowAppearanceModal(false)}
+                                        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                                    />
+                                    <motion.div
+                                        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                                        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                        className="relative w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border-4 border-white/20 text-center bg-background-light text-white"
+                                    >
+                                        <button
+                                            onClick={() => setShowAppearanceModal(false)}
+                                            className="absolute top-4 right-4 text-white/60 hover:text-white"
+                                        >
+                                            <span className="material-symbols-outlined">close</span>
+                                        </button>
+                                        <div className="mb-6">
+                                            <h2 className="text-2xl font-bold mb-2">Appearance</h2>
+                                            <p className="text-sm text-white/70">Select your preferred theme</p>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <button onClick={() => window.setTheme('theme-earthy-1')} className="w-full py-3 rounded-full font-bold shadow-md border-2" style={{ backgroundColor: '#ecebe9', color: '#9b9b99', borderColor: 'rgba(155,155,153,0.3)' }}>1. Lime </button>
+                                            <button onClick={() => window.setTheme('theme-earthy-2')} className="w-full py-3 rounded-full font-bold shadow-md border-2" style={{ backgroundColor: '#9b9b99', color: '#f5f5f5', borderColor: 'rgba(245,245,245,0.3)' }}>2. Granite  </button>
+                                            <button onClick={() => window.setTheme('theme-earthy-3')} className="w-full py-4 rounded-full font-bold shadow-md border-2" style={{ backgroundColor: '#7f7963', color: '#f5f5f5', borderColor: 'rgba(245,245,245,0.4)' }}>3. Sand Stone </button>
+                                            <button onClick={() => window.setTheme('theme-earthy-4')} className="w-full py-3 rounded-full font-bold shadow-md border-2" style={{ backgroundColor: '#655d50', color: '#3d362b', borderColor: 'rgba(61,54,43,0.3)' }}>4. Clay </button>
+                                            <button onClick={() => window.setTheme('theme-earthy-5')} className="w-full py-3 rounded-full font-bold shadow-md border-2" style={{ backgroundColor: '#393323', color: '#b0a78f', borderColor: 'rgba(176,167,143,0.3)' }}>5. Earth </button>
+                                        </div>
+                                    </motion.div>
+                                </div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </PageWrapper>
+            );
+        };
+
+        /**
+         * Group Chat Component
+         */
+        const GroupChat = () => {
+            const navigate = useNavigate();
+            const [messages, setMessages] = useState([]);
+            const [inputText, setInputText] = useState("");
+            const [peerCount, setPeerCount] = useState(0);
+            const [isConnected, setIsConnected] = useState(false);
+            const [myIdentity, setMyIdentity] = useState(null);
+            const [familyMembers, setFamilyMembers] = useState([]);
+            const [myHash, setMyHash] = useState("");
+
+            useEffect(() => {
+                const identity = window.CryptoUtils.getUserIdentity();
+                if (identity) {
+                    setMyHash(identity.identityHash);
+                }
+
+                // Load historical messages from storage asynchronously
+                window.messageStorage.getMessages("global").then(history => setMessages(history));
+                setPeerCount(window.peerManager.getPeerCount());
+                setIsConnected((window.meshTrackerClient.health || []).some(h => h.connected));
+
+                const unsubMessages = window.peerManager.subscribeMessages((msg) => {
+                    if (msg.type === "chat") {
+                        setMessages((prev) => [...prev, msg]);
+                    } else if (msg.type === "SYNC_REQUEST" && msg.groupId === "global" && window.fmConnection) {
+                        // Respond to sync requests with messages after the cursor
+                        window.messageStorage.getMessages("global").then(history => {
+                            const since = msg.since || 0;
+                            const missed = history.filter(m => m.timestamp > since);
+                            if (missed.length > 0 && window.peerManager.getPeerCount() > 0) {
+                                window.peerManager.sendMessage({
+                                    type: 'SYNC_RESPONSE',
+                                    groupId: 'global',
+                                    messages: missed.slice(-50) // Cap at 50 messages
+                                });
+                            }
+                        });
+                    } else if (msg.type === "SYNC_RESPONSE" && msg.groupId === "global") {
+                        // Merge sync'd messages, avoiding duplicates
+                        setMessages(prev => {
+                            const ids = new Set(prev.map(m => m.id));
+                            const newMsgs = (msg.messages || []).filter(m => !ids.has(m.id));
+                            if (newMsgs.length > 0) {
+                                return [...prev, ...newMsgs].sort((a, b) => a.timestamp - b.timestamp);
+                            }
+                            return prev;
+                        });
+                    }
+                });
+
+                // Event-driven peer count (replaces setInterval polling)
+                const onPeerStateChange = () => {
+                    setPeerCount(window.peerManager.getPeerCount());
+                    setIsConnected((window.meshTrackerClient.health || []).some(h => h.connected));
+                };
+                // Wire fmConnection for state-driven updates
+                let unsubConnState = null;
+                if (window.fmConnection) {
+                    const handler = () => onPeerStateChange();
+                    window.fmConnection.addEventListener('connection_state_change', handler);
+                    unsubConnState = () => window.fmConnection.removeEventListener('connection_state_change', handler);
+                }
+                // Wire message status updates
+                let unsubMsgStatus = null;
+                if (window.fmConnection) {
+                    unsubMsgStatus = window.fmConnection.onMessageStatusChange((update) => {
+                        setMessages(prev => prev.map(m =>
+                            m.id === update.messageId ? { ...m, status: update.status } : m
+                        ));
+                    });
+                }
+                // Fallback polling at 5s (much less aggressive than the old 2s)
+                const interval = setInterval(onPeerStateChange, 5000);
+
+                return () => {
+                    unsubMessages();
+                    clearInterval(interval);
+                    if (unsubConnState) unsubConnState();
+                    if (unsubMsgStatus) unsubMsgStatus();
+                };
+            }, []);
+
+            const getNameForHash = (hash) => {
+                if (hash === myHash) return "You";
+                const member = familyMembers.find(
+                    (m) => m.identityHash === hash,
+                );
+                return member ? member.firstName : hash.substring(0, 8);
+            };
+
+            const getInitialForHash = (hash) => {
+                if (hash === myHash) return "Y";
+                const member = familyMembers.find(
+                    (m) => m.identityHash === hash,
+                );
+                return member
+                    ? member.firstName.substring(0, 1).toUpperCase()
+                    : hash.substring(0, 1).toUpperCase();
+            };
+
+            const handleSendMessage = async () => {
+                // Allow sending if we have peers OR tracker connection
+                if (!inputText.trim()) return;
+
+                const content = inputText; // Capture current input
+                setInputText(""); // Clear UI immediately for responsiveness
+
+                const newMsg = {
+                    id: `msg-${Date.now()}`,
+                    senderId: myHash,
+                    content: content,
+                    timestamp: Date.now(),
+                    status: 'sending'
+                };
+
+                // Optimistic UI Update
+                setMessages((prev) => [...prev, newMsg]);
+
+                // Send via new Battery-Saver Orchestrator
+                if (window.fmConnection) {
+                    await window.fmConnection.sendGroupMessage("global", content);
+                } else {
+                    // Fallback for extreme edge cases if UI renders before init
+                    window.peerManager.sendMessage(content);
+                }
+            };
+
+            const canType = isConnected || peerCount > 0 || true; // Always allow typing for local testing
+
+            return (
+                <PageWrapper>
+                    <div className="h-screen flex flex-col bg-background-light font-publicSans">
+                        <header className="flex items-center justify-between p-4 border-b border-white/20 sticky top-0 z-10 bg-background-light">
+                            <motion.button
+                                whileTap={tapScale}
+                                onClick={() => navigate("/settings", { replace: true })}
+                                className="text-white p-2"
+                            >
+                                <span className="material-symbols-outlined text-3xl">
+                                    arrow_back
+                                </span>
+                            </motion.button>
+                            <div className="flex flex-col items-center">
+                                <h1 className="font-bold text-2xl text-white">
+                                    Family Group
+                                </h1>
+                                <div className="flex items-center gap-1">
+                                    <div
+                                        className={`w-2 h-2 rounded-full ${peerCount > 0 ? "bg-accent" : (isConnected ? "bg-yellow-400" : "bg-red-500")}`}
+                                    ></div>
+                                    <span className="text-[10px] font-bold text-white/70 uppercase tracking-tighter">
+                                        {peerCount > 0
+                                            ? `${peerCount} Peers Connected`
+                                            : (isConnected ? "Waiting for Peers..." : "Offline")}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="w-10"></div>
+                        </header>
+                        <main className="flex-1 overflow-y-auto p-4 space-y-6 chat-area">
+                            {messages.map((msg, i) => {
+                                const isSystem = msg.senderId === "system";
+                                const isMe = msg.senderId === myHash;
+
+                                if (isSystem) {
+                                    return (
+                                        <div
+                                            key={msg.id}
+                                            className="text-center"
+                                        >
+                                            <span className="text-xs font-bold text-white/50 bg-black/10 px-3 py-1 rounded-full uppercase tracking-widest">
+                                                {msg.content}
+                                            </span>
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <motion.div
+                                        key={msg.id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className={`flex items-start space-x-3 max-w-[90%] ${isMe ? "ml-auto flex-row-reverse space-x-reverse" : ""}`}
+                                    >
+                                        <div
+                                            className={`w-10 h-10 rounded-full border-2 border-white/50 flex items-center justify-center font-bold text-white ${isMe ? "bg-earthy-5" : "bg-black"}`}
+                                        >
+                                            {getInitialForHash(
+                                                msg.senderId,
+                                            )}
+                                        </div>
+                                        <div>
+                                            {!isMe && (
+                                                <p className="text-xs font-bold text-white/80 mb-1 ml-1">
+                                                    {getNameForHash(
+                                                        msg.senderId,
+                                                    )}
+                                                </p>
+                                            )}
+                                            <div
+                                                className={`p-4 rounded-3xl shadow-lg ${isMe ? "rounded-br-none" : "rounded-tl-none"}`}
+                                                style={{ 
+                                                    backgroundColor: isMe ? 'var(--bubble-me-bg)' : 'rgba(255,255,255,0.1)', 
+                                                    color: isMe ? 'var(--bubble-me-text)' : 'inherit',
+                                                    border: '1px solid rgba(255,255,255,0.1)'
+                                                }}
+                                            >
+                                                <p className="text-xl leading-tight">
+                                                    {msg.content}
+                                                </p>
+                                            </div>
+                                            <p
+                                                className={`text-[9px] mt-1 font-bold text-white/40 uppercase ${isMe ? "text-right" : ""}`}
+                                            >
+                                                {new Date(
+                                                    msg.timestamp,
+                                                ).toLocaleTimeString([], {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit",
+                                                })}
+                                                {isMe && msg.status && (
+                                                    <span className="ml-1.5">
+                                                        {msg.status === 'sending' && '⏳'}
+                                                        {msg.status === 'queued' && '📥'}
+                                                        {msg.status === 'sent' && '✓'}
+                                                        {msg.status === 'delivered' && '✓✓'}
+                                                        {msg.status === 'failed' && '✗'}
+                                                    </span>
+                                                )}
+                                            </p>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </main>
+                        <footer className="p-4 bg-background-light">
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1">
+                                    <input
+                                        className="w-full bg-white border-4 border-white/30 rounded-full py-4 px-6 text-xl text-white-800 placeholder-gray-400 shadow-inner focus:outline-none"
+                                        placeholder="Tap to type..."
+                                        type="text"
+                                        value={inputText}
+                                        onChange={(e) =>
+                                            setInputText(e.target.value)
+                                        }
+                                        onKeyPress={(e) =>
+                                            e.key === "Enter" &&
+                                            handleSendMessage()
+                                        }
+                                    />
+                                </div>
+                                <motion.button
+                                    whileTap={tapScale}
+                                    onClick={handleSendMessage}
+                                    className={`btn-uniform w-16 h-16 rounded-full ${!inputText.trim() ? "opacity-50" : ""}`}
+                                    disabled={!inputText.trim()}
+                                >
+                                    <span className="material-symbols-outlined text-4xl">
+                                        send
+                                    </span>
+                                </motion.button>
+                            </div>
+                        </footer>
+                    </div>
+                </PageWrapper>
+            );
+        };
+
+        /**
+         * Private Chat Component
+         */
+        const PrivateChat = () => {
+            const navigate = useNavigate();
+            const location = useLocation();
+            const [peer, setPeer] = useState(location.state?.peer);
+
+            // Auto-redirect if accessed without peer state (prevents blank screen)
+            useEffect(() => {
+                if (!peer) {
+                    // Try to recover from familyManager if possible (e.g. from sessionStorage or ID)
+                    const lastPeerId = sessionStorage.getItem('last_chat_peer_id');
+                    if (lastPeerId) {
+                        const recovered = window.familyManager.getMembers().find(m => m.identityHash === lastPeerId);
+                        if (recovered) {
+                            setPeer(recovered);
+                            return;
+                        }
+                    }
+                    navigate("/settings", { replace: true });
+                } else {
+                    sessionStorage.setItem('last_chat_peer_id', peer.identityHash);
+                }
+            }, [peer, navigate]);
+
+            const [messages, setMessages] = useState([]);
+            const [inputText, setInputText] = useState("");
+            const [isConnected, setIsConnected] = useState(false);
+            const [myHash, setMyHash] = useState("");
+            const [familyMembers, setFamilyMembers] = useState([]);
+
+            useEffect(() => {
+                const start = async () => {
+                    const identity = await window.CryptoUtils.getOrCreateIdentity();
+                    setMyHash(identity.identityHash);
+                    setFamilyMembers(window.familyManager.getMembers());
+
+                    if (peer) {
+                        const history = await window.messageStorage.getMessages(peer.identityHash);
+                        setMessages(history);
+
+                        if (!window.privateChannel.isPeerConnected(peer.identityHash)) {
+                            window.privateChannel.connectToPeer(peer.identityHash, peer.publicKey);
+                        }
+                        setIsConnected(window.privateChannel.isPeerConnected(peer.identityHash));
+
+                        // Promote to ACTIVE_CHAT in ConnectionManager
+                        if (window.fmConnection) {
+                            window.fmConnection.promoteToActiveChat(peer.identityHash.substring(0, 128));
+                        }
+                    }
+                };
+                start();
+
+                const unsub = window.privateChannel.setOnMessage((fromHash, msg) => {
+                    if (peer && fromHash === peer.identityHash) {
+                        const newMsg = { ...msg, id: msg.id || `priv-${Date.now()}-${Math.random()}` };
+                        window.messageStorage.addMessage(peer.identityHash, newMsg);
+                        setMessages((prev) => [...prev, newMsg]);
+                    }
+                });
+
+                // Event-driven connection status (replaces setInterval polling)
+                let unsubConnState = null;
+                if (window.fmConnection) {
+                    const connHandler = (e) => {
+                        const { contactId, state } = e.detail;
+                        if (peer && contactId === peer.identityHash.substring(0, 128)) {
+                            setIsConnected(state === 'CONNECTED' || state === 'ACTIVE_CHAT');
+                        }
+                    };
+                    window.fmConnection.addEventListener('connection_state_change', connHandler);
+                    unsubConnState = () => window.fmConnection.removeEventListener('connection_state_change', connHandler);
+                }
+
+                // Wire message status updates
+                let unsubMsgStatus = null;
+                if (window.fmConnection) {
+                    unsubMsgStatus = window.fmConnection.onMessageStatusChange((update) => {
+                        setMessages(prev => prev.map(m =>
+                            m.id === update.messageId ? { ...m, status: update.status } : m
+                        ));
+                    });
+                }
+
+                // Fallback polling at 5s (much less aggressive than old 2s)
+                const checkInterval = setInterval(() => {
+                    if (peer) {
+                        setIsConnected(window.privateChannel.isPeerConnected(peer.identityHash));
+                    }
+                }, 5000);
+
+                return () => {
+                    clearInterval(checkInterval);
+                    if (unsub) unsub();
+                    if (unsubConnState) unsubConnState();
+                    if (unsubMsgStatus) unsubMsgStatus();
+                    // Demote from ACTIVE_CHAT on leave
+                    if (peer && window.fmConnection) {
+                        window.fmConnection.demoteFromActiveChat(peer.identityHash.substring(0, 128));
+                    }
+                };
+            }, [peer]);
+
+            const [activeCall, setActiveCall] = useState(null);
+
+            if (!peer) {
+                return (
+                    <div className="flex flex-col items-center justify-center min-h-screen bg-background-light p-8 text-center text-white font-publicSans">
+                        <span className="material-icons-outlined text-6xl mb-4 opacity-20">person_off</span>
+                        <h2 className="text-2xl font-bold mb-4">No Family Member Selected</h2>
+                        <button onClick={() => navigate("/settings")} className="btn-uniform px-8 py-3 rounded-full">
+                            Back to Family
+                        </button>
+                    </div>
+                );
+            }
+
+            const handleSendMessage = async () => {
+                if (!inputText.trim() || !peer) return;
+
+                const content = inputText;
+                setInputText(""); // Optimistic clear
+
+                const newMsg = {
+                    id: `priv-${Date.now()}-${Math.random()}`,
+                    senderId: myHash,
+                    content: content,
+                    timestamp: Date.now(),
+                    status: 'sending'
+                };
+
+                // Optimistic append
+                setMessages((prev) => [...prev, newMsg]);
+
+                if (window.fmConnection) {
+                    await window.fmConnection.sendDirectMessage(peer.identityHash, content);
+                }
+            };
+
+            const getInitialForHash = (hash) => {
+                if (hash === myHash) return "Y";
+                const m = familyMembers.find(fm => fm.identityHash === hash);
+                return m ? m.firstName.substring(0, 1).toUpperCase() : "?";
+            };
+
+            return (
+                <PageWrapper>
+                    <div className="h-screen flex flex-col bg-background-light font-publicSans">
+                        <header className="flex items-center justify-between p-4 border-b border-white/20 sticky top-0 z-10 bg-background-light">
+                            <motion.button
+                                whileTap={tapScale}
+                                onClick={() => navigate("/settings", { replace: true })}
+                                className="text-white p-2"
+                            >
+                                <span className="material-symbols-outlined text-3xl">arrow_back</span>
+                            </motion.button>
+                            <div className="flex flex-col items-center">
+                                <h1 className="font-bold text-2xl text-white">
+                                    {peer.firstName}
+                                </h1>
+                                <div className="flex items-center gap-1">
+                                    <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]" : "bg-yellow-400 animate-pulse"}`}></div>
+                                    <span className="text-[10px] font-bold text-white/70 uppercase tracking-tighter">
+                                        {isConnected ? "Secure Line" : "Offline — messages will queue"}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex gap-1">
+                                <motion.button
+                                    whileTap={tapScale}
+                                    className="text-white p-2"
+                                    onClick={() => setActiveCall({ type: "voice" })}
+                                >
+                                    <span className="material-symbols-outlined text-2xl">call</span>
+                                </motion.button>
+                                <motion.button
+                                    whileTap={tapScale}
+                                    className="text-white p-2"
+                                    onClick={() => setActiveCall({ type: "video" })}
+                                >
+                                    <span className="material-symbols-outlined text-2xl">videocam</span>
+                                </motion.button>
+                            </div>
+                        </header>
+                        <main className="flex-1 overflow-y-auto p-4 space-y-4 chat-area">
+                            <div className="text-center mb-6">
+                                <span className="text-[10px] font-bold text-white/40 bg-white/5 px-3 py-1 rounded-full uppercase tracking-widest border border-white/10">
+                                    End-to-End Encrypted
+                                </span>
+                            </div>
+
+                            {messages.map((msg) => {
+                                const isMe = msg.senderId === myHash;
+                                return (
+                                    <motion.div
+                                        key={msg.id}
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className={`flex items-start space-x-3 max-w-[90%] ${isMe ? "ml-auto flex-row-reverse space-x-reverse" : ""}`}
+                                    >
+                                        <div
+                                            className={`w-10 h-10 rounded-full border-2 border-white/50 flex items-center justify-center font-bold text-white ${isMe ? "bg-earthy-5" : "bg-black"}`}
+                                        >
+                                            {getInitialForHash(msg.senderId)}
+                                        </div>
+                                        <div>
+                                            <div
+                                                className={`p-4 rounded-3xl shadow-lg ${isMe ? "rounded-br-none" : "rounded-tl-none"}`}
+                                                style={{ 
+                                                    backgroundColor: isMe ? 'var(--bubble-me-bg)' : 'rgba(255,255,255,0.1)', 
+                                                    color: isMe ? 'var(--bubble-me-text)' : 'inherit',
+                                                    border: '1px solid rgba(255,255,255,0.1)'
+                                                }}
+                                            >
+                                                <p className="text-xl leading-tight">{msg.content}</p>
+                                            </div>
+                                            <p className={`text-[9px] mt-1 font-bold text-white/40 uppercase ${isMe ? "text-right" : ""}`}>
+                                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                                {isMe && msg.status && (
+                                                    <span className="ml-1.5">
+                                                        {msg.status === 'sending' && '⏳'}
+                                                        {msg.status === 'queued' && '📥'}
+                                                        {msg.status === 'sent' && '✓'}
+                                                        {msg.status === 'delivered' && '✓✓'}
+                                                        {msg.status === 'failed' && '✗'}
+                                                    </span>
+                                                )}
+                                            </p>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </main>
+                        <footer className="p-4 bg-background-light">
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1">
+                                    <input
+                                        className="w-full bg-white border-4 border-white/30 rounded-full py-4 px-6 text-xl text-gray-800 placeholder-gray-400 shadow-inner focus:outline-none"
+                                        placeholder="Secure message..."
+                                        type="text"
+                                        value={inputText}
+                                        onChange={(e) => setInputText(e.target.value)}
+                                        onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                                    />
+                                </div>
+                                <motion.button
+                                    whileTap={tapScale}
+                                    onClick={handleSendMessage}
+                                    className={`btn-uniform w-16 h-16 rounded-full ${!inputText.trim() ? "opacity-50" : ""}`}
+                                    disabled={!inputText.trim()}
+                                >
+                                    <span className="material-symbols-outlined text-4xl">send</span>
+                                </motion.button>
+                            </div>
+                        </footer>
+
+                        <AnimatePresence>
+                            {activeCall && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-between py-20 text-white font-publicSans"
+                                >
+                                    <div className="text-center">
+                                        <div className="w-32 h-32 bg-earthy-2 rounded-full mx-auto mb-6 flex items-center justify-center text-4xl font-bold">
+                                            {peer.firstName.substring(0, 1)}
+                                        </div>
+                                        <h2 className="text-3xl font-bold mb-2">{peer.firstName}</h2>
+                                        <p className="text-white/60 uppercase tracking-widest text-sm translate-y-2 animate-pulse">Ringing...</p>
+                                    </div>
+                                    <div className="flex gap-10">
+                                        <motion.button
+                                            whileTap={tapScale}
+                                            onClick={() => setActiveCall(null)}
+                                            className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center shadow-2xl"
+                                        >
+                                            <span className="material-symbols-outlined text-4xl">call_end</span>
+                                        </motion.button>
+                                        {activeCall.type === "video" && (
+                                            <motion.button
+                                                whileTap={tapScale}
+                                                className="w-20 h-20 bg-white/10 border-2 border-white/20 rounded-full flex items-center justify-center backdrop-blur-xl"
+                                            >
+                                                <span className="material-symbols-outlined text-4xl">videocam_off</span>
+                                            </motion.button>
+                                        )}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </PageWrapper>
+            );
+        };
+
+        /**
+         * Invite Member Component
+         */
+        const InviteMember = () => {
+            const navigate = useNavigate();
+            const familyId =
+                "FAM-" +
+                Math.random().toString(36).substr(2, 9).toUpperCase();
+
+            return (
+                <PageWrapper>
+                    <div className="min-h-screen bg-background-light flex flex-col font-publicSans">
+                        <header className="flex items-center justify-between p-4 border-b border-white/20 sticky top-0 z-10 bg-background-light">
+                            <motion.button
+                                whileTap={tapScale}
+                                onClick={() => navigate("/settings")}
+                                className="text-white p-2"
+                            >
+                                <span className="material-symbols-outlined text-3xl">
+                                    arrow_back
+                                </span>
+                            </motion.button>
+                            <h1 className="font-bold text-2xl text-white">
+                                Add Family Member
+                            </h1>
+                            <div className="w-10"></div>
+                        </header>
+
+                        <main className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-8">
+                            <div className="space-y-4">
+                                <h2 className="text-2xl font-bold text-white">
+                                    Your Unique QR Code
+                                </h2>
+                                <p className="text-white/80">
+                                    Let your family member scan this code to
+                                    join instantly.
+                                </p>
+                            </div>
+
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="bg-white p-6 rounded-3xl shadow-2xl border-8 border-white/30"
+                            >
+                                {/* Simulated QR Code */}
+                                <div className="w-64 h-64 bg-white flex flex-wrap p-2">
+                                    {Array.from({ length: 25 }).map(
+                                        (_, i) => (
+                                            <div
+                                                key={i}
+                                                className={`w-1/5 h-1/5 ${Math.random() > 0.5 ? "bg-black" : "bg-white"}`}
+                                            ></div>
+                                        ),
+                                    )}
+                                </div>
+                            </motion.div>
+
+                            <div className="w-full space-y-4">
+                                <div className="bg-white/10 p-4 rounded-2xl border border-white/20">
+                                    <p className="text-xs font-bold uppercase text-white/60 mb-1">
+                                        Family ID
+                                    </p>
+                                    <p className="text-2xl font-mono font-bold text-white tracking-widest">
+                                        {familyId}
+                                    </p>
+                                </div>
+
+                                <div className="pt-4 space-y-3">
+                                    <motion.button
+                                        whileTap={tapScale}
+                                        className="w-full btn-uniform py-4 rounded-full text-lg gap-3"
+                                        onClick={() =>
+                                            window.notificationManager.show("Sending link code via SMS...", "info")
+                                        }
+                                    >
+                                        <span className="material-icons-outlined">
+                                            sms
+                                        </span>
+                                        Send LINK CODE by text
+                                    </motion.button>
+
+                                    <p className="text-white/60 text-sm italic">
+                                        Link codes expire in 24 hours for
+                                        security.
+                                    </p>
+                                </div>
+                            </div>
+                        </main>
+                    </div>
+                </PageWrapper>
+            );
+        };
+
+        /* === SECTION 14: ROOT CONTROLLER (APP LOGIC) === */
+        /**
+         * AUDIT: App Life Cycle & Core Dispatch
+         * - init(): Sequentially loads storage -> identity -> networking layers.
+         * - Profile Guard: Blocks app entry until name/invite code exists.
+         * - Mesh Gossip: Automatically shares family registry on new connections.
+         * - Discovery Integration: Bridges Layer 1 (Discovery) to Layer 2 (Mesh) by auto-offering on peer found.
+         */
+
+        /**
+         * Main App Component with Route Animations
+         */
+        const App = () => {
+            const [initialized, setInitialized] = useState(false);
+            const [profileNeeded, setProfileNeeded] = useState(false);
+            const [firstName, setFirstName] = useState("");
+            const [lastName, setLastName] = useState("");
+
+            useEffect(() => {
+                const init = async () => {
+                    try {
+                        window.messageRequestService.initialize();
+                        window.familyManager.initialize();
+                        window.messageStorage.initialize();
+
+                        const identity = await window.CryptoUtils.getOrCreateIdentity();
+                        if (!identity.firstName) {
+                            setProfileNeeded(true);
+                        } else {
+                            // Networking subsystems are now initialized centrally by the ConnectionManager.
+                            // ==========================================================
+                            // INJECT NEW CONNECTION MANAGER INTO RENDER LOOP
+                            // ==========================================================
+                            window.APP_DEBUG.log("Initializing Battery-Efficient Connection Manager");
+                            window.fmConnection = new ConnectionManager();
+                            await window.fmConnection.init(identity, {
+                                discoveryManager: window.discoveryManager,
+                                meshTrackerClient: window.meshTrackerClient,
+                                peerManager: window.peerManager,
+                                privateChannel: window.privateChannel,
+                                localSignaling: LocalSignaling,
+                                storage: window.messageStorage // Now points to IndexedDB wrapper
+                            });
+
+                            // Setup Global Signal Handlers
+                            // 1. Listen for mesh messages
+                            window.peerManager.subscribeMessages((msg) => {
+                                if (msg.type === "chat") {
+                                    // window.messageStorage.addMessage // Handled securely via fmConnection now, or fall back via legacy array.
+                                } else if (msg.type === "MEMBER_SHARE") {
+                                    // Received a shared family member from the mesh
+                                    window.APP_DEBUG.log(`Mesh: Received shared member ${msg.member.firstName}`);
+                                    window.familyManager.addMember(msg.member);
+                                }
+                            });
+
+                            // 2. Proactive Discovery — When tracker finds a peer, try to connect via private channel
+                            window.discoveryManager.onPeerFound = (peerId) => {
+                                window.APP_DEBUG.log(`Mesh: Discovery found peer ${peerId}`);
+                                // Look up if this peer is a known family member
+                                const members = window.familyManager.getMembers();
+                                const match = members.find(m => m.identityHash && m.identityHash.startsWith(peerId));
+                                if (match) {
+                                    window.APP_DEBUG.log(`Mesh: Peer ${peerId} is family member ${match.firstName}, initiating private channel...`);
+                                    window.privateChannelManager.connectToPeer(match.identityHash, match.publicKey);
+                                }
+                            };
+
+                            // 3. Wire core signaling for family joins (JOIN_REQUEST/JOIN_RESPONSE)
+                            setupCoreSignaling(identity);
+
+                            setInitialized(true);
+                        }
+                    } catch (err) {
+                        window.APP_DEBUG.error("Initialization failed", err);
+                    }
+                };
+                init();
+            }, []);
+
+            const setupCoreSignaling = (identity) => {
+                // Global Signaling for Family Joining
+                window.peerManager.subscribeMessages((msg) => {
+                    if (
+                        msg.type === "JOIN_REQUEST" &&
+                        msg.targetCode === identity.inviteCode
+                    ) {
+                        window.APP_DEBUG.log(
+                            `Global: Received JOIN_REQUEST for my code from ${msg.senderProfile.firstName}`,
+                        );
+                        // Add member locally
+                        const isNew = window.familyManager.addMember(msg.senderProfile);
+
+                        // Send response
+                        window.peerManager.sendMessage({
+                            type: "JOIN_RESPONSE",
+                            targetHash: msg.senderProfile.identityHash,
+                            senderProfile: {
+                                identityHash: identity.identityHash,
+                                firstName: identity.firstName,
+                                lastName: identity.lastName,
+                                publicKey: identity.publicKey,
+                                inviteCode: identity.inviteCode,
+                            },
+                        });
+
+                        // If it was a new member, broadcast to the mesh
+                        if (isNew) {
+                            window.peerManager.sendMessage({
+                                type: "MEMBER_SHARE",
+                                member: msg.senderProfile
+                            });
+                        }
+                    } else if (
+                        msg.type === "JOIN_RESPONSE" &&
+                        msg.targetHash === identity.identityHash
+                    ) {
+                        window.APP_DEBUG.log(
+                            `Global: Received JOIN_RESPONSE from ${msg.senderProfile.firstName}`,
+                        );
+                        const isNew = window.familyManager.addMember(msg.senderProfile);
+                        if (isNew) {
+                            window.peerManager.sendMessage({
+                                type: "MEMBER_SHARE",
+                                member: msg.senderProfile
+                            });
+                        }
+                    }
+                });
+
+                // Listen for discovery-based family joins
+                window.discoveryManager.onDiscoveryMessage = (msg, peerId) => {
+                    if (msg.type === "JOIN_REQUEST" && msg.targetCode === identity.inviteCode) {
+                        window.APP_DEBUG.log(`Discovery: Received JOIN_REQUEST from ${peerId}`);
+                        window.familyManager.addMember(msg.senderProfile);
+
+                        // Send response back via discovery channel
+                        window.discoveryManager.sendDiscoveryMessage(peerId, {
+                            type: "JOIN_RESPONSE",
+                            targetHash: msg.senderProfile.identityHash,
+                            senderProfile: {
+                                identityHash: identity.identityHash,
+                                firstName: identity.firstName,
+                                lastName: identity.lastName,
+                                publicKey: identity.publicKey,
+                                inviteCode: identity.inviteCode,
+                            },
+                        });
+                        // SILENCED to prevent loop: Only the seeker gets the "Connected" alert
+                        // window.notificationManager.show(`New family member added: ${msg.senderProfile.firstName}!`, "success");
+                    } else if (msg.type === "JOIN_RESPONSE" && msg.targetHash === identity.identityHash) {
+                        window.APP_DEBUG.log(`Discovery: Received JOIN_RESPONSE from ${peerId}`);
+
+                        // Add to registry immediately
+                        window.familyManager.addMember(msg.senderProfile);
+
+                        // Check if already added to prevent Alert Loop
+                        const exists = window.familyManager.getMembers().find(m => m.identityHash === msg.senderProfile.identityHash);
+                        const isNotified = window.discoveryManager.notifiedPeers.has(msg.senderProfile.identityHash);
+
+                        // FIX: Strict External Debounce to prevent React Re-render loops from defeating the check
+                        if (!window.__discoveryAlertDebounce) {
+                            window.__discoveryAlertDebounce = new Set();
+                        }
+
+                        const debounceKey = `${msg.senderProfile.identityHash}_JOINED`;
+                        const isDebounced = window.__discoveryAlertDebounce.has(debounceKey);
+
+                        // Only notify if NOT already notified in this session
+                        if (!isDebounced) {
+                            window.notificationManager.show(`Connected to family member: ${msg.senderProfile.firstName}!`, "success");
+                            // Add to both managers to be safe
+                            window.discoveryManager.notifiedPeers.add(msg.senderProfile.identityHash);
+                            window.__discoveryAlertDebounce.add(debounceKey);
+
+                            // Clear debounce after 10 seconds to allow re-alerting if legitimate re-connection content
+                            setTimeout(() => window.__discoveryAlertDebounce.delete(debounceKey), 10000);
+                        }
+
+                        // Critical: Revert to our own discovery room so others can find us
+                        window.APP_DEBUG.log("Discovery: Reverting to own presence after success.");
+                        window.discoveryManager.registerDiscovery(identity.inviteCode, identity);
+                    } else if (msg.type === "private_offer" || msg.type === "private_answer") {
+                        // Forward private chat signals to the manager
+                        window.APP_DEBUG.log(`Discovery: Forwarding private signal from ${peerId}`);
+                        window.privateChannelManager.handleSignal(peerId, msg);
+                    }
+                };
+            };
+
+            const handleSaveProfile = async () => {
+                if (!firstName.trim() || !lastName.trim()) return;
+                const identity = await window.CryptoUtils.getUserIdentity();
+                identity.firstName = firstName.trim();
+                identity.lastName = lastName.trim();
+                identity.inviteCode =
+                    await window.CryptoUtils.generateInviteCode(
+                        getOrCreateAppID(),
+                        identity.firstName,
+                        identity.lastName,
+                    );
+                getStorage().setItem(
+                    getIdentityKey(),
+                    JSON.stringify(identity),
+                );
+
+                // Initialize ConnectionManager for new profiles (BUG #7 FIX)
+                window.APP_DEBUG.log("Initializing Battery-Efficient Connection Manager (new profile)");
+                window.fmConnection = new ConnectionManager();
+                await window.fmConnection.init(identity, {
+                    discoveryManager: window.discoveryManager,
+                    meshTrackerClient: window.meshTrackerClient,
+                    peerManager: window.peerManager,
+                    privateChannel: window.privateChannel,
+                    localSignaling: LocalSignaling,
+                    storage: window.messageStorage
+                });
+
+                // Wire core signaling for family joins
+                setupCoreSignaling(identity);
+
+                setProfileNeeded(false);
+                setInitialized(true);
+            };
+
+            if (profileNeeded) {
+                return (
+                    <div className="flex items-center justify-center min-h-screen bg-background-light p-6 font-publicSans">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="bg-earthy-1 p-8 rounded-[2.5rem] shadow-2xl border-4 border-white/50 w-full max-w-sm space-y-6"
+                        >
+                            <div className="text-center">
+                                <h1 className="text-3xl font-bold text-earthy-5">
+                                    Setup Family Profile
+                                </h1>
+                                <p className="text-earthy-4 mt-2">
+                                    Enter your name to generate your family
+                                    invite code.
+                                </p>
+                            </div>
+                            <div className="space-y-4">
+                                <input
+                                    className="w-full bg-white/50 border-2 border-earthy-2/30 rounded-2xl py-4 px-6 text-lg text-earthy-5 focus:outline-none"
+                                    placeholder="First Name"
+                                    value={firstName}
+                                    onChange={(e) =>
+                                        setFirstName(e.target.value)
+                                    }
+                                />
+                                <input
+                                    className="w-full bg-white/50 border-2 border-earthy-2/30 rounded-2xl py-4 px-6 text-lg text-earthy-5 focus:outline-none"
+                                    placeholder="Last Name"
+                                    value={lastName}
+                                    onChange={(e) =>
+                                        setLastName(e.target.value)
+                                    }
+                                />
+                            </div>
+                            <motion.button
+                                whileTap={tapScale}
+                                onClick={handleSaveProfile}
+                                className="w-full btn-uniform py-4 rounded-full text-xl bg-earthy-5 text-white border-none"
+                            >
+                                START Family Connection
+                            </motion.button>
+                        </motion.div>
+                    </div>
+                );
+            }
+
+            if (!motion || !AnimatePresence || !initialized) {
+                return (
+                    <div className="flex items-center justify-center h-screen bg-background-light text-white">
+                        <div className="text-center">
+                            <h1 className="text-2xl font-bold mb-2">
+                                Loading Family Connection...
+                            </h1>
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <MemoryRouter>
+                    <NotificationContainer />
+                    <AnimatedRoutes />
+                </MemoryRouter>
+            );
+        };
+
+        const AnimatedRoutes = () => {
+            const location = useLocation();
+            if (!location) return null;
+            return (
+                <AnimatePresence mode="wait">
+                    <Routes location={location} key={location.pathname}>
+                        <Route path="/" element={<SplashScreen />} />
+                        <Route path="/group-chat" element={<GroupChat />} />
+                        <Route
+                            path="/private-chat"
+                            element={<PrivateChat />}
+                        />
+                        <Route
+                            path="/settings"
+                            element={<SettingsScreen />}
+                        />
+                    </Routes>
+                </AnimatePresence>
+            );
+        };
+
+        /* === SECTION 15: MOUNTING & BOOTSTRAP === */
+        /**
+         * Final execution block.
+         * Mounts the React tree to the physical DOM.
+         */
+        const container = document.getElementById("root");
+        const root = createRoot(container);
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

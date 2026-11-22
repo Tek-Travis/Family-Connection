@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+    <script src="vendor/js/libp2p/libp2p.js"></script>
+    <script src="vendor/js/libp2p/websockets.js"></script>
+    <script src="vendor/js/libp2p/webrtc.js"></script>
+    <script src="vendor/js/libp2p/noise.js"></script>
+    <script src="vendor/js/libp2p/yamux.js"></script>
+    <script src="vendor/js/libp2p/gossipsub.js"></script>
+</head>
+<body>
+    <script>
+        console.log('--- TEST START ---');
+        console.log('Libp2P keys:', Object.keys(window.Libp2P || {}));
+        console.log('Gossipsub keys:', Object.keys(window.ChainsafeLibp2PGossipsub || {}));
+        console.log('Webrtc keys:', Object.keys(window.Libp2PWebrtc || {}));
+        console.log('Websockets keys:', Object.keys(window.Libp2PWebsockets || {}));
+        console.log('Noise keys:', Object.keys(window.ChainsafeLibp2PNoise || {}));
+        console.log('Yamux keys:', Object.keys(window.ChainsafeLibp2PYamux || {}));
+        console.log('--- TEST END ---');
+    </script>
+</body>
+</html>
