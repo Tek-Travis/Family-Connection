@@ -13,74 +13,90 @@ export const FamilyDinnerIllustration: React.FC<{ className?: string }> = ({ cla
     className={`${className} rounded-2xl overflow-hidden`}
   >
     <defs>
+      <filter
+        id="familyHeadShadow"
+        x="-60%"
+        y="-60%"
+        width="220%"
+        height="240%"
+        colorInterpolationFilters="sRGB"
+      >
+        <feDropShadow
+          dx="0"
+          dy="2"
+          stdDeviation="2.5"
+          floodColor="#262626"
+          floodOpacity="0.65"
+        />
+      </filter>
       <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#3d362b" />
-        <stop offset="50%" stopColor="#4a4235" />
-        <stop offset="100%" stopColor="#252119" />
+        <stop offset="0%" stopColor="#404040" />
+        <stop offset="50%" stopColor="#525252" />
+        <stop offset="100%" stopColor="#262626" />
       </linearGradient>
       <radialGradient id="lampGlow" cx="50%" cy="30%" r="50%">
-        <stop offset="0%" stopColor="#ffe9a0" stopOpacity="0.4" />
-        <stop offset="100%" stopColor="#ffe9a0" stopOpacity="0" />
+        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.4" />
+        <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
       </radialGradient>
       <linearGradient id="tableGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stopColor="#7a6952" />
-        <stop offset="100%" stopColor="#544734" />
+        <stop offset="0%" stopColor="#737373" />
+        <stop offset="100%" stopColor="#404040" />
       </linearGradient>
     </defs>
 
     {/* Cozy Room Background */}
-    <rect width="600" height="240" rx="16" fill="url(#bgGrad)" />
+    <rect width="600" height="240" rx="16" fill="var(--bg-color)" />
 
     {/* Pendant Lamp Glow */}
     <circle cx="300" cy="80" r="130" fill="url(#lampGlow)" />
-    <line x1="300" y1="0" x2="300" y2="45" stroke="#ffe9a0" strokeWidth="2.5" />
-    <path d="M280 45 L320 45 L335 70 L265 70 Z" fill="#bfa370" />
-    <circle cx="300" cy="74" r="8" fill="#fff5cc" />
+    <line x1="300" y1="0" x2="300" y2="45" stroke="#ffffff" strokeWidth="2.5" />
+    <path d="M280 45 L320 45 L335 70 L265 70 Z" fill="#a3a3a3" />
+    <circle cx="300" cy="74" r="8" fill="#fafafa" />
 
     {/* Wooden Dining Table */}
-    <ellipse cx="300" cy="180" rx="220" ry="45" fill="url(#tableGrad)" stroke="#8e7b62" strokeWidth="2" />
-    <ellipse cx="300" cy="172" rx="190" ry="32" fill="#675842" opacity="0.6" />
+    <ellipse cx="300" cy="180" rx="220" ry="45" fill="url(#tableGrad)" stroke="#a3a3a3" strokeWidth="2" />
+    <ellipse cx="300" cy="172" rx="190" ry="32" fill="#525252" opacity="0.6" />
 
     {/* Centerpiece & Dishes */}
-    <circle cx="300" cy="170" r="18" fill="#eedcba" opacity="0.8" />
-    <circle cx="300" cy="170" r="14" fill="#d97736" />
-    <ellipse cx="230" cy="176" rx="12" ry="7" fill="#f5ede0" opacity="0.9" />
-    <ellipse cx="370" cy="176" rx="12" ry="7" fill="#f5ede0" opacity="0.9" />
+    <circle cx="300" cy="170" r="18" fill="#e5e5e5" opacity="0.8" />
+    <circle cx="300" cy="170" r="14" fill="#a3a3a3" />
+    <ellipse cx="230" cy="176" rx="12" ry="7" fill="#fafafa" opacity="0.9" />
+    <ellipse cx="370" cy="176" rx="12" ry="7" fill="#fafafa" opacity="0.9" />
 
     {/* Family Characters Gathering Warmly (Silhouettes with gentle highlights) */}
     {/* Left Parent */}
-    <circle cx="160" cy="120" r="20" fill="#eed9c4" />
-    <path d="M140 115 Q160 90 180 115 Q170 100 150 102 Z" fill="#4a3728" />
-    <path d="M125 190 Q120 145 160 145 Q200 145 195 190 Z" fill="#947c64" />
+    <circle cx="160" cy="120" r="20" filter="url(#familyHeadShadow)" fill="#f5f5f5" />
+    <path d="M140 115 Q160 90 180 115 Q170 100 150 102 Z" fill="#404040" />
+    <path d="M125 190 Q120 145 160 145 Q200 145 195 190 Z" fill="#a3a3a3" />
 
     {/* Child 1 */}
-    <circle cx="230" cy="130" r="15" fill="#f2dfce" />
-    <path d="M216 126 Q230 110 244 126 Q238 116 222 118 Z" fill="#6e503b" />
-    <path d="M205 185 Q205 152 230 152 Q255 152 255 185 Z" fill="#b0977d" />
+    <circle cx="230" cy="130" r="15" filter="url(#familyHeadShadow)" fill="#e5e5e5" />
+    <path d="M216 126 Q230 110 244 126 Q238 116 222 118 Z" fill="#737373" />
+    <path d="M205 185 Q205 152 230 152 Q255 152 255 185 Z" fill="#d4d4d4" />
 
     {/* Child 2 */}
-    <circle cx="370" cy="130" r="15" fill="#f2dfce" />
-    <path d="M356 126 Q370 110 384 126 Q378 116 362 118 Z" fill="#3b2b20" />
-    <path d="M345 185 Q345 152 370 152 Q395 152 395 185 Z" fill="#8a9a86" />
+    <circle cx="370" cy="130" r="15" filter="url(#familyHeadShadow)" fill="#e5e5e5" />
+    <path d="M356 126 Q370 110 384 126 Q378 116 362 118 Z" fill="#262626" />
+    <path d="M345 185 Q345 152 370 152 Q395 152 395 185 Z" fill="#a3a3a3" />
 
     {/* Right Parent / Elder */}
-    <circle cx="440" cy="120" r="20" fill="#ebd2bc" />
-    <path d="M420 116 Q440 94 460 116 Q450 102 430 104 Z" fill="#9e9891" />
-    <path d="M405 190 Q400 145 440 145 Q480 145 475 190 Z" fill="#6e6558" />
+    <circle cx="440" cy="120" r="20" filter="url(#familyHeadShadow)" fill="#e5e5e5" />
+    <path d="M420 116 Q440 94 460 116 Q450 102 430 104 Z" fill="#a3a3a3" />
+    <path d="M405 190 Q400 145 440 145 Q480 145 475 190 Z" fill="#737373" />
 
     {/* Subtitle tag */}
-    <rect x="210" y="200" width="180" height="26" rx="13" fill="#000000" fillOpacity="0.4" />
+    <rect x="135" y="200" width="330" height="26" rx="13" fill="#000000" fillOpacity="0.4" />
     <text
       x="300"
       y="217"
       textAnchor="middle"
       fill="#ffffff"
-      fontSize="11"
+      fontSize="20"
       fontWeight="700"
       letterSpacing="1.5"
       fontFamily="Public Sans, sans-serif"
     >
-      PRIVATE FAMILY MESH
+      ENTER PRIVATE FAMILY GROUP CHAT
     </text>
   </svg>
 );

@@ -26,6 +26,7 @@ import {
   ActiveCallSession,
 } from '../networking/chitchatterFamilyBridge.ts';
 import { notificationManager } from './NotificationContainer.tsx';
+import { silenceIncomingCallRingtone } from '../services/incomingCallRingtone.ts';
 
 interface PrivateChatScreenProps {
   myIdentity: UserIdentity;
@@ -276,6 +277,7 @@ export const PrivateChatScreen: React.FC<PrivateChatScreenProps> = ({
 
   const answerIncomingCall = async () => {
     if (!activeCall || activeCall.state !== 'ringing_incoming') return;
+    silenceIncomingCallRingtone(activeCall.callId);
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -313,6 +315,7 @@ export const PrivateChatScreen: React.FC<PrivateChatScreenProps> = ({
 
   const declineIncomingCall = async () => {
     if (!activeCall) return;
+    silenceIncomingCallRingtone(activeCall.callId);
     await connectionManager.rejectCall(activeCall.callId);
     setActiveCall(null);
   };

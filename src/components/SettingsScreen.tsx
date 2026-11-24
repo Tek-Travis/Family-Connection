@@ -52,6 +52,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   onSwitchIdentity,
   onStartCall,
 }) => {
+  // Retain testing controls in source, but hide them from the UI.
+  const showTestingControls = false;
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [showNetworkInfo, setShowNetworkInfo] = useState(false);
@@ -119,7 +121,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     >
       {/* Top Header */}
       <header
-        className="flex items-center justify-between p-4 border-b border-white/15 sticky top-0 z-20 backdrop-blur-md"
+        className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center p-4 border-b border-white/15 sticky top-0 z-20 backdrop-blur-md"
         style={{ backgroundColor: 'rgba(var(--bg-color), 0.85)' }}
       >
         <div className="flex items-center gap-2">
@@ -144,6 +146,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </div>
 
         {/* Dev Mode Identity Switcher Button */}
+        {showTestingControls && (
         <button
           onClick={onSwitchIdentity}
           className="text-xs font-bold px-3 py-1.5 rounded-full border border-white/20 hover:bg-white/10 transition-colors flex items-center gap-1.5"
@@ -152,6 +155,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           <Sparkles className="w-3.5 h-3.5 text-amber-300" />
           <span>Switch</span>
         </button>
+        )}
       </header>
 
       <div className="max-w-md mx-auto px-4 pt-4 space-y-6">
@@ -228,30 +232,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           className="cursor-pointer rounded-3xl overflow-hidden border-2 border-white/20 shadow-2xl bg-black/25 transition-transform"
         >
           <FamilyDinnerIllustration className="w-full h-44 object-cover" />
-
-          <div className="p-4 flex items-center justify-between border-t border-white/10 bg-black/20">
-            <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center font-bold"
-                style={{
-                  backgroundColor: 'var(--bubble-me-bg)',
-                  color: 'var(--bubble-me-text)',
-                }}
-              >
-                <Users className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-lg leading-tight">Enter Family Chat</h3>
-                <p className="text-xs opacity-75">
-                  Encrypted group mesh • {groupOnlineCount} online
-                </p>
-              </div>
-            </div>
-
-            <div className="w-9 h-9 rounded-full flex items-center justify-center bg-white/10">
-              <ArrowRight className="w-5 h-5" />
-            </div>
-          </div>
         </motion.div>
 
         {/* Family Members Section (Level 1 Peer Presence & Level 3 Private Channel State) */}
@@ -263,7 +243,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             <span className="text-[11px] opacity-60">End-to-End Encrypted</span>
           </div>
 
-          <div className="bg-black/20 rounded-3xl shadow-lg border-2 border-white/15 overflow-hidden">
+          <div className="bg-black/20 rounded-3xl shadow-lg border-2 border-white/15 overflow-visible">
             {activeMembers.length === 0 ? (
               <div className="p-8 text-center space-y-3">
                 <Users className="w-12 h-12 mx-auto opacity-30" />
@@ -502,6 +482,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 </span>
               </li>
 
+              {showTestingControls && (
               <li
                 onClick={handleToggleDevMode}
                 className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors"
@@ -520,6 +501,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                   {isDevMode() ? 'ON' : 'OFF'}
                 </span>
               </li>
+              )}
             </ul>
           </div>
         </section>

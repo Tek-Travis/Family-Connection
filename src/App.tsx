@@ -20,10 +20,38 @@ import { PrivateChatScreen } from './components/PrivateChatScreen.tsx';
 import { ProfileSetupModal } from './components/ProfileSetupModal.tsx';
 import { AddMemberModal } from './components/AddMemberModal.tsx';
 import { ThemeModal } from './components/ThemeModal.tsx';
+import {
+  syncIncomingCallRingtone,
+  unlockIncomingCallRingtone,
+  disposeIncomingCallRingtone,
+} from './services/incomingCallRingtone.ts';
 
 type Screen = 'splash' | 'settings' | 'group-chat' | 'private-chat';
 
 export default function App() {
+  // Incoming-call ringtone: independent of the currently displayed screen.
+  useEffect(() => {
+    const unlock = () => {
+      void unlockIncomingCallRingtone();
+    };
+
+    document.addEventListener('pointerdown', unlock);
+    document.addEventListener('keydown', unlock);
+
+    const unsubscribe = connectionManager.onCallStateChange((call) => {
+      syncIncomingCallRingtone(call);
+    });
+
+    syncIncomingCallRingtone(connectionManager.getActiveCall());
+
+    return () => {
+      document.removeEventListener('pointerdown', unlock);
+      document.removeEventListener('keydown', unlock);
+      unsubscribe();
+      disposeIncomingCallRingtone();
+    };
+  }, []);
+
   const [currentScreen, setCurrentScreen] = useState<Screen>('splash');
   const [myIdentity, setMyIdentity] = useState<UserIdentity | null>(null);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
